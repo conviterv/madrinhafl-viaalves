@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Convite Especial - Ronaldo e Vitória</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;800&family=Great+Vibes&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS (via CDN for rapid styling) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* --- Configurações Globais --- */
+        :root {
+            --gold: #D4AF37;
+            --dark-gold: #AA8C2C;
+            --cream: #F5F5F5;
+            --overlay-alpha: 0.25; /* Regra: Máximo 0.25 */
+        }
+
+        body {
+            font-family: 'Lato', sans-serif;
+            overflow: hidden; /* Controlado pelo JS após abertura */
+            background-color: #000;
+            color: white;
+        }
+
+        h1, h2, h3 {
+            font-family: 'Cinzel', serif;
+        }
+
+        .script-font {
+            font-family: 'Great Vibes', cursive;
+        }
+
+        /* --- Scroll Snap (Rolagem Magnética) --- */
+        .scroll-container {
+            height: 100vh;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            scroll-behavior: smooth;
+            display: none; /* Oculto até abrir o envelope */
+            opacity: 0;
+            transition: opacity 1.5s ease;
+        }
+
+        .page-section {
+            height: 100vh;
+            width: 100vw;
+            scroll-snap-align: start;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 1.5rem;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+
+        /* Animação suave de Zoom no fundo (Ken Burns effect) */
+        @keyframes kenburns {
+            0% { background-size: 100%; }
+            100% { background-size: 110%; }
+        }
+        .animate-bg {
+            animation: kenburns 20s ease-in-out infinite alternate;
+        }
+
+        /* --- Camadas e Legibilidade --- */
+        .overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, var(--overlay-alpha)); /* Regra de 25% max */
+            z-index: 1;
+        }
+
+        .content {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 600px;
+            /* Vidro fosco sutil para legibilidade sem fundo sólido */
+            backdrop-filter: blur(2px);
+            background: rgba(255, 255, 255, 0.05);
+            padding: 2rem 1rem;
+            border-radius: 1rem;
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            /* Sombra no texto para garantir leitura sobre fotos claras */
+            text-shadow: 0 2px 4px rgba(0,0,0,0.9);
+            
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 1s ease-out;
+        }
+
+        .page-section.active .content {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* --- Estilo do Envelope (Abertura) --- */
+        #envelope-wrapper {
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            background: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            perspective: 1000px;
+            transition: transform 1s ease, opacity 1s ease;
+        }
+
+        .envelope {
+            width: 300px;
+            height: 200px;
+            background: #fdfbf7;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transform-style: preserve-3d;
+            transition: transform 1s;
+        }
+
+        .envelope-flap {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100px; /* Metade da altura */
+            background: #e6dfd3;
+            clip-path: polygon(0 0, 100% 0, 50% 100%);
+            transform-origin: top;
+            transition: transform 0.6s 0.2s ease-in-out;
+            z-index: 5;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .wax-seal {
+            width: 50px;
+            height: 50px;
+            background: #8b0000;
+            border-radius: 50%;
+            margin-top: 35px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #d4af37;
+            font-size: 24px;
+            cursor: pointer;
+            border: 2px solid rgba(255,255,255,0.2);
+            position: relative;
+            z-index: 10;
+            animation: pulse 2s infinite;
+        }
+
+        .envelope-body {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #fdfbf7;
+            border-top: 1px solid #ddd;
+            z-index: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #333;
+            font-family: 'Cinzel', serif;
+        }
+
+        /* Classes de Abertura */
+        .envelope.open .envelope-flap {
+            transform: rotateX(180deg);
+            z-index: 0;
+        }
+
+        .envelope.open {
+            transform: translateY(200px) scale(0.5);
+            opacity: 0;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(139, 0, 0, 0.7); }
+            70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(139, 0, 0, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(139, 0, 0, 0); }
+        }
+
+        /* Indicador de Scroll */
+        .scroll-indicator {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 20;
+            animation: bounce 2s infinite;
+            opacity: 0.8;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {transform: translateX(-50%) translateY(0);}
+            40% {transform: translateX(-50%) translateY(-10px);}
+            60% {transform: translateX(-50%) translateY(-5px);}
+        }
+
+        /* Botão Dourado */
+        .btn-gold {
+            background: linear-gradient(135deg, #d4af37 0%, #aa8c2c 100%);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-family: 'Cinzel', serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+            border: 1px solid white;
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
+            transition: transform 0.2s;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 20px;
+            text-shadow: none;
+        }
+        .btn-gold:active {
+            transform: scale(0.95);
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- 1. CARTA DE ABERTURA (Envelope Animation) -->
+    <div id="envelope-wrapper">
+        <div class="envelope" id="envelope">
+            <div class="envelope-flap">
+                <div class="wax-seal" onclick="openInvitation()">
+                    <i class="fa-solid fa-heart"></i>
+                </div>
+            </div>
+            <div class="envelope-body flex flex-col items-center justify-center p-4">
+                <h2 class="text-xl text-gray-800 font-bold mb-2">Ronaldo & Vitória</h2>
+                <p class="text-xs text-gray-500 uppercase tracking-widest">Toque no selo para abrir</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. CONTEÚDO PRINCIPAL (Scroll Snap) -->
+    <div class="scroll-container" id="main-content">
+        
+        <!-- PÁGINA 1: Edificando sobre a Rocha -->
+        <section class="page-section" style="background-image: url('https://lh3.googleusercontent.com/pw/AP1GczNfobFO9-M1RCEJ0MjQCFKigCGA0zJ-W-gRXR5p5NucnSILiFzF6Pb-i4TzuuI5hUZRomaMKfVc6uPYimEh91mNq-_iTMdFVmk0LMI5V6Er1TycPLcnLwpFx0iO6JFsJjiAyXOoZrOi3L4LWYp0h2Cu3g=w547-h365-s-no-gm?authuser=0');">
+            <div class="overlay"></div>
+            <div class="content">
+                <div class="mb-4 text-yellow-400 text-3xl">
+                    <i class="fa-solid fa-church"></i>
+                </div>
+                <h1 class="text-3xl md:text-5xl font-bold mb-6 text-white leading-tight">
+                    Edificando sobre a Rocha
+                </h1>
+                <div class="w-16 h-1 bg-yellow-500 mx-auto mb-6"></div>
+                <p class="text-lg md:text-xl font-light italic mb-4">
+                    "E, se alguém quiser prevalecer contra um, os dois lhe resistirão; e o cordão de três dobras não se quebra facilmente."
+                </p>
+                <p class="text-sm uppercase tracking-widest font-bold text-yellow-400">
+                    Eclesiastes 4:12
+                </p>
+            </div>
+            <div class="scroll-indicator">
+                <i class="fa-solid fa-chevron-down text-2xl"></i>
+            </div>
+        </section>
+
+        <!-- PÁGINA 2: Pais e Noivos -->
+        <section class="page-section" style="background-image: url('https://lh3.googleusercontent.com/pw/AP1GczMSaj_G7pJC14ICQSSyujgNhuj6hEkJ91T4Sx0VatqQBHMcp8hgHqjCwtzYRthBzTcsS_FHrlf3BydagxqyeAutQgyGhv7NLUSMAM21SXoNhh8HEKmt0M_morwqN4OUS3BMTX-kr6b21An_xbqc4TOG4Q=w576-h384-s-no-gm?authuser=0');">
+            <div class="overlay"></div>
+            <div class="content">
+                <div class="grid grid-cols-1 gap-6">
+                    <!-- Coluna Noivo -->
+                    <div>
+                        <h2 class="text-3xl script-font text-yellow-400 mb-2">Ronaldo Barros de Araújo</h2>
+                        <p class="text-xs uppercase tracking-wide mb-1 opacity-90">Filho de</p>
+                        <p class="font-bold text-sm">Natividade Pereira de Araújo<br>& Maria Barros de Araújo</p>
+                    </div>
+
+                    <!-- Divisor sutil -->
+                    <div class="text-xl script-font opacity-80">&</div>
+
+                    <!-- Coluna Noiva -->
+                    <div>
+                        <h2 class="text-3xl script-font text-yellow-400 mb-2">Vitória Barbosa de Araújo</h2>
+                        <p class="text-xs uppercase tracking-wide mb-1 opacity-90">Filha de</p>
+                        <p class="font-bold text-sm">Reilson Barbosa Santos<br>& Vânia Nunes de Araújo Pereira</p>
+                    </div>
+                </div>
+
+                <div class="mt-8 pt-4 border-t border-yellow-500/30">
+                    <p class="text-sm md:text-base leading-relaxed">
+                        Reconhecemos a importância da intercessão e do exemplo cristão de vocês em nossa jornada até o altar.
+                    </p>
+                </div>
+            </div>
+            <div class="scroll-indicator">
+                <i class="fa-solid fa-chevron-down text-2xl"></i>
+            </div>
+        </section>
+
+        <!-- PÁGINA 3: O Convite (Petição) -->
+        <section class="page-section" style="background-image: url('https://lh3.googleusercontent.com/pw/AP1GczPqr8xTnhYTfbsTSgc_dtcnhYYf_9JPUWj07Ujd3ajZQ1zebIxhK3xpcQzOGlltZ4mx7X55nGS4vm4J2kQjkva6LDW84Y3ju6Fnsmn33N5ZnbVdyfpLeqM0XYPvh6SaU6_1qP6c4ZNI7nx4kdb1QcJ0LQ=w576-h384-s-no-gm?authuser=0');">
+            <div class="overlay"></div>
+            <div class="content">
+                <h3 class="uppercase tracking-[0.3em] text-xs mb-4 text-yellow-400">Petição Oficial</h3>
+                
+                <h1 class="text-4xl script-font mb-6 text-white">Madrinha Flávia Alves</h1>
+                
+                <p class="text-lg leading-relaxed mb-6">
+                    Sob a bênção de nossos pais, temos a honra de convidá-la para a nobre missão de ser nossa <strong class="text-yellow-400">Madrinha de Casamento</strong>.
+                </p>
+                
+                <p class="text-md italic font-light border-l-2 border-yellow-500 pl-4 ml-4">
+                    "Para ser nossa testemunha diante de Deus e dos homens."
+                </p>
+            </div>
+            <div class="scroll-indicator">
+                <i class="fa-solid fa-chevron-down text-2xl"></i>
+            </div>
+        </section>
+
+        <!-- PÁGINA 4: Aceite (WhatsApp) -->
+        <section class="page-section" style="background-image: url('https://lh3.googleusercontent.com/pw/AP1GczPVMD1qDJ56drxVYPfCDXrcEgPZd6EMxOBtnBl0OV_syDCqsNEG8iMJw4m8pW0tRAmJoIA0eki_8C6wB4cNGyBHlS2WacwKw7Vv3AyD_Cv-VVh3eyXik7luWHYnOn_dkwieOI3MPudPmlOxgIUCuVBxiw=w547-h365-s-no-gm?authuser=0');">
+            <div class="overlay"></div>
+            <div class="content">
+                <h2 class="text-2xl font-bold mb-4 font-serif">Sua resposta é uma bênção</h2>
+                
+                <p class="mb-8 text-sm opacity-90">
+                    Se aceitar esta missão sagrada, por favor, clique abaixo para nos enviar sua confirmação.
+                </p>
+
+                <!-- Link WhatsApp com texto pré-definido, sem número (user picker) -->
+                <a href="whatsapp://send?text=Queridos%20Afilhados,%20%C3%89%20com%20o%20cora%C3%A7%C3%A3o%20grato%20a%20Deus%20que%20aceitamos%20a%20honrosa%20miss%C3%A3o%20de%20sermos%20seus%20Padrinhos%20e%20testemunhas%20desta%20alian%C3%A7a.%20Estaremos%20ao%20lado%20de%20voc%C3%AAs%20como%20suporte%20e%20ora%C3%A7%C3%A3o.%20Aguardamos%20as%20instru%C3%A7%C3%B5es%20para%20o%20grande%20dia!" 
+                   class="btn-gold animate-pulse">
+                   <i class="fa-brands fa-whatsapp mr-2"></i> Aceitar Missão
+                </a>
+
+                <div class="mt-10 p-4 bg-black/40 rounded-lg border border-gray-600">
+                    <h4 class="text-yellow-400 font-bold uppercase text-xs tracking-wider mb-2">
+                        <i class="fa-solid fa-book-open mr-1"></i> Próximos Passos
+                    </h4>
+                    <p class="text-xs leading-relaxed text-gray-200">
+                        Após o aceite, enviaremos o <strong>Manual dos Padrinhos</strong> com detalhes exclusivos sobre os trajes, a logística de chegada antecipada (protocolo), data, horário e local.
+                    </p>
+                </div>
+            </div>
+            <!-- Rodapé discreto -->
+            <div class="absolute bottom-4 text-[10px] text-gray-400">
+                Ronaldo & Vitória &copy; 2025
+            </div>
+        </section>
+
+    </div>
+
+    <!-- Script de Interação -->
+    <script>
+        // Função de abrir o envelope
+        function openInvitation() {
+            const envelope = document.getElementById('envelope');
+            const envelopeWrapper = document.getElementById('envelope-wrapper');
+            const mainContent = document.getElementById('main-content');
+            const audio = new Audio(); // Placeholder para som se desejar
+
+            // Animação CSS
+            envelope.classList.add('open');
+
+            // Aguarda a animação do envelope para remover o wrapper e mostrar o conteúdo
+            setTimeout(() => {
+                envelopeWrapper.style.opacity = '0';
+                setTimeout(() => {
+                    envelopeWrapper.style.display = 'none';
+                    mainContent.style.display = 'block';
+                    // Pequeno delay para permitir o display block renderizar antes da opacidade
+                    setTimeout(() => {
+                        mainContent.style.opacity = '1';
+                        observeSections(); // Inicia observador de scroll
+                    }, 50);
+                }, 1000);
+            }, 800);
+        }
+
+        // Intersection Observer para animar o conteúdo ao rolar
+        function observeSections() {
+            const sections = document.querySelectorAll('.page-section');
+            
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('active');
+                    } else {
+                        // Opcional: remover a classe para re-animar ao voltar
+                        // entry.target.classList.remove('active'); 
+                    }
+                });
+            }, {
+                threshold: 0.4
+            });
+
+            sections.forEach(section => {
+                observer.observe(section);
+            });
+        }
+    </script>
+</body>
+</html>
+
